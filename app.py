@@ -1,39 +1,70 @@
-import os
 from flask import Flask, request, jsonify
 from dotenv import load_dotenv
+import requests
+import os
 
 app = Flask(__name__)
 
-# Define el token de verificación que configuraste en el panel de WhatsApp
-VERIFICATION_TOKEN = "prueba"
+# Carga las variables del archivo .env
+load_dotenv()
 
-@app.route('/webhook', methods=['GET', 'POST'])
-def webhook():
-    if request.method == 'GET':
-        # Obtiene los parámetros de la solicitud GET
-        token = request.args.get('hub.verify_token')
-        challenge = request.args.get('hub.challenge')
+# Estado de los usuarios almacenado en memoria
+client_states = {}
+
+# Configura el token de acceso de la API de WhatsApp
+WHATSAPP_TOKEN = os.getenv("WHATSAPP_TOKEN")
+WHATSAPP_API_URL = "https://graph.facebook.com/{VERSION}/{PHONE_NUMBER_ID}/messages"  # Reemplaza {PHONE_NUMBER_ID} con el ID de tu número de WhatsApp Business
+
+# Endpoint para recibir mensajes
+@app.route('/webhook', methods=['POST'])
+def receive_message():
+    data = request.json
+    # Verifica si el mensaje es de tipo texto
+    if 'messages' in data['entry'][0]['changes'][0]['value']:
+        message = data['entry'][0]['changes'][0]['value']['messages'][0]
+        from_id = message['from']  # ID del remitente (número de WhatsApp)
+        text = message['text']['body'] if 'text' in message else None
         
-        # Verifica que el token recibido coincide con tu token de verificación
-        if token == VERIFICATION_TOKEN:
-            return challenge, 200  # Responde con el 'challenge' para verificar el webhook
-        else:
-            return "Token de verificación incorrecto", 403
+        # Maneja el estado del cliente
+        if from_id not in client_states:
+            client_states[from_id] = {"estado": "inicio"}
+        
+        # Procesa el mensaje y genera una respuesta según el estado
+        response_text = "Hola, ¿cómo puedo ayudarte?"
+        
+        # Actualiza el estado del cliente si es necesario
+        client_states[from_id]["estado"] = "mensaje_recibido"
+        
+        # Envía una respuesta al usuario
+        send_message(from_id, response_text)
     
-    elif request.method == 'POST':
-        data = request.get_json()
-        
-        print(data)
-        # Procesa el mensaje entrante aquí
-        if data and 'messages' in data['entry'][0]['changes'][0]['value']:
-            phone_number = data['entry'][0]['changes'][0]['value']['messages'][0]['from']
-            message_text = data['entry'][0]['changes'][0]['value']['messages'][0]['text']['body']
-            
-            print(f'Mensaje recibido de {phone_number}: {message_text}')
-            
-            return jsonify({"status": "mensaje recibido"}), 200
-        else:
-            return jsonify({"status": "sin mensajes"}), 200
+    return "Evento recibido", 200
+
+# Función para enviar mensajes usando la API de WhatsApp
+def send_message(to, message_text):
+    headers = {
+        "Authorization": f"Bearer {WHATSAPP_TOKEN}",
+        "Content-Type": "application/json"
+    }
+    data = {
+        "messaging_product": "whatsapp",
+        "to": to,
+        "type": "text",
+        "text": {"body": message_text}
+    }
+    response = requests.post(WHATSAPP_API_URL, headers=headers, json=data)
+    return response.json()
+
+# Endpoint para enviar mensajes desde el servidor
+@app.route('/send', methods=['POST'])
+def send_custom_message():
+    data = request.json
+    to = data.get("to")
+    message = data.get("message")
+    if to and message:
+        response = send_message(to, message)
+        return jsonify(response)
+    return jsonify({"error": "Datos faltantes"}), 400
 
 if __name__ == '__main__':
-    app.run(port=5000, debug=True)
+    app.run(debug=True)
