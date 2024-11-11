@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from dotenv import load_dotenv
 import requests
 import os
+from database import *
 
 app = Flask(__name__)
 
@@ -12,33 +13,47 @@ load_dotenv()
 client_states = {}
 
 # Configura el token de acceso de la API de WhatsApp
+VERIFY_TOKEN = "Sopo2024*"  # Cambia esto por tu token de verificación
 WHATSAPP_TOKEN = os.getenv("WHATSAPP_TOKEN")
 WHATSAPP_API_URL = "https://graph.facebook.com/{VERSION}/{PHONE_NUMBER_ID}/messages"  # Reemplaza {PHONE_NUMBER_ID} con el ID de tu número de WhatsApp Business
 
 # Endpoint para recibir mensajes
 @app.route('/webhook', methods=['POST'])
 def receive_message():
-    data = request.json
-    # Verifica si el mensaje es de tipo texto
-    if 'messages' in data['entry'][0]['changes'][0]['value']:
-        message = data['entry'][0]['changes'][0]['value']['messages'][0]
-        from_id = message['from']  # ID del remitente (número de WhatsApp)
-        text = message['text']['body'] if 'text' in message else None
-        
-        # Maneja el estado del cliente
-        if from_id not in client_states:
-            client_states[from_id] = {"estado": "inicio"}
-        
-        # Procesa el mensaje y genera una respuesta según el estado
-        response_text = "Hola, ¿cómo puedo ayudarte?"
-        
-        # Actualiza el estado del cliente si es necesario
-        client_states[from_id]["estado"] = "mensaje_recibido"
-        
-        # Envía una respuesta al usuario
-        send_message(from_id, response_text)
-    
-    return "Evento recibido", 200
+    if request.method == 'GET':
+        # Verificación del webhook
+        token = request.args.get('hub.verify_token')
+        if token == VERIFY_TOKEN:
+            return request.args.get('hub.challenge'), 200
+        else:
+            return "Unauthorized", 403
+    elif request.method == 'POST':
+        # Mensaje recibido
+        data = request.json
+        print("Mensaje recibido:", data)  # Imprime el mensaje en la terminal
+        print(data['entry'][0]['changes'][0]['value']['messages'][0]['text']['body'])
+        # INICIO OFICIAL DEL CHAT BOT 
+
+        # OBTENER DATOS DEL USUARIO
+        # Numero de telefono del contacto
+        telefono = data['entry'][0]['changes'][0]['value']['messages'][0]['from']
+
+        # Obtener el nombre del contacto o "Usuario" si no existe
+        contacto = data['entry'][0]['changes'][0]['value']['contacts'][0]
+        nombre = contacto['profile'].get('name', 'Usuario')
+
+        # Obtener mensaje escrito por el usuario
+        mensaje = data['entry'][0]['changes'][0]['value']['messages'][0]['text']['body']
+
+        # Revisa en que estado se encuentra el usuario que esta escribiendo
+        estado_usuario(telefono)
+
+
+        return jsonify({"status": "success"}), 200
+
+# Revisar en que estado se encuentra el usuario
+def estado_usuario(telefono):
+
 
 # Función para enviar mensajes usando la API de WhatsApp
 def send_message(to, message_text):
