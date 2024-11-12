@@ -26,8 +26,7 @@ WHATSAPP_API_URL = "https://graph.facebook.com/v20.0/418920651309807/messages"  
 RECIPIENT_PHONE_NUMBER = "whatsapp:+573057499964"  # Número de teléfono del destinatario (formato E.164)
 
 # Endpoint para recibir mensajes
-# Endpoint para recibir mensajes
-@app.route('/webhook', methods=['POST'])
+@app.route('/webhook', methods=['POST','GET'])
 def receive_message():
     if request.method == 'GET':
         # Verificación del webhook
@@ -45,63 +44,27 @@ def receive_message():
         try:
             # OBTENER DATOS DEL USUARIO
 
-            tipo_mensaje = "texto"
-            telefono = ""
-            nombre = ""
-            # Verificar le tipo de mensaje entrante
-            if 'messages' in data['entry'][0]['changes'][0]['value']:
-                # Este es un mensaje enviado por el usuario
-                for mensaje in data['entry'][0]['changes'][0]['value']['messages']:
-                    if mensaje.get('type') == 'text':
-                        # Procesa el mensaje de texto del usuario
-                        mensaje_texto = mensaje['text']['body']
-
-                        # Número de teléfono del contacto
-                        telefono = data['entry'][0]['changes'][0]['value']['messages'][0]['from']
-
-                        # Obtener el nombre del contacto o "Usuario" si no existe
-                        contacto = data['entry'][0]['changes'][0]['value']['contacts'][0]
-                        nombre = contacto['profile'].get('name', 'Usuario')
-
-            elif 'statuses' in data['entry'][0]['changes'][0]['value']:
-                # Este es un mensaje de confirmación de estado
-                for status in data['entry'][0]['changes'][0]['value']['statuses']:
-                    if status.get('status') in ['delivered', 'read', 'sent']:
-                        # Procesa el estado del mensaje
-                        print("Estado del mensaje:", status['status'])
-
-
-            # Verificar si el mensaje es interactivo (de botón) o de texto
-            mensaje = data['entry'][0]['changes'][0]['value']['messages'][0]
-            if mensaje['type'] == 'interactive' and mensaje['interactive']['type'] == 'button_reply':
-                # Extraer el título del botón
-                title = mensaje['interactive']['button_reply']['title']
-                print("Título del botón:", title)
-
-            elif mensaje['type'] == 'text':
-                # Obtener el texto del mensaje
-                mensaje_texto = mensaje['text']['body']
-                
-                print("Mensaje de texto:", mensaje_texto)
-
-            # Establecer conexión con la base de datos
-            db = conectar_base_datos()
+            # Verificar tipo de mensaje
+            datos_mensaje = verificar_tipo_mensaje(data)
+            # Verificar en que estado se encuentra el numero qeu escribio
+            if datos_mensaje['tipo_mensaje'] != "notificacion":
+                # Establecer conexión con la base de datos
+                db = conectar_base_datos()
             
-            # Revisa en qué estado se encuentra el usuario que está escribiendo
-            estado = consulta_estado_usuario(db, telefono)
-            print(estado)
-
-            # Si está vacío entra aquí; es decir, no hay estado con ese número de teléfono
-            if not estado:
-                # Ingresar datos para poner un estado al nuevo número
-                datos = {
-                    "Telefono": telefono,
-                    "Nombre": nombre,
-                    "Estado": "Bienvenido",
-                }
-                # agregar_record(db, datos)
-                # Enviar mensaje de bienvenida
-                enviar_mensaje("En qué te puedo ayudar?", "bienvenida")
+                # Revisa en qué estado se encuentra el usuario que está escribiendo
+                estado = consulta_estado_usuario(db, datos_mensaje['telefono'])
+                
+                # Estado inicial cuando se empieza la conversacion no tiene el telefono guardado en la base de datos
+                if datos_mensaje['tipo_mensaje'] == "texto" and not estado:
+                    # Ingresar datos para poner un estado al nuevo número
+                    datos = {
+                        "Telefono": datos_mensaje['telefono'],
+                        "Nombre": datos_mensaje['nombre'],
+                        "Estado": "Bienvenido",
+                    }
+                    agregar_record(db, datos)
+                    # Enviar mensaje de bienvenida
+                    enviar_mensaje("En qué te puedo ayudar?", "bienvenida")
 
         except KeyError as e:
             print(f"Clave faltante en el JSON recibido: {e}")
@@ -109,6 +72,9 @@ def receive_message():
 
         return jsonify({"status": "success"}), 200
 
+
+
+        
 
 
 # Funciones para enviar mensajes    
@@ -152,16 +118,55 @@ def enviar_mensaje(encabezado,botones_llave):
         print(response.json())
 
 
-# Endpoint para enviar mensajes desde el servidor
-@app.route('/send', methods=['POST'])
-def send_custom_message():
-    data = request.json
-    to = data.get("to")
-    message = data.get("message")
-    if to and message:
-        response = send_message(to, message)
-        return jsonify(response)
-    return jsonify({"error": "Datos faltantes"}), 400
+# Función para definir el tipo de mensaje que llega
+def verificar_tipo_mensaje(data):
+    # Inicialización de variables
+    tipo_mensaje = ""
+    nombre = ""
+    telefono = ""
+    mensaje_texto = ""
+    
+    # Verificar si es un mensaje enviado por el usuario
+    if 'messages' in data['entry'][0]['changes'][0]['value']:
+        for mensaje in data['entry'][0]['changes'][0]['value']['messages']:
+            # Mensaje de texto
+            if mensaje.get('type') == 'text':
+                mensaje_texto = mensaje['text']['body']
+                telefono = mensaje['from']
+                
+                # Obtener el nombre del contacto o "Usuario" si no existe
+                contacto = data['entry'][0]['changes'][0]['value']['contacts'][0]
+                nombre = contacto['profile'].get('name', 'Usuario')
+                
+                tipo_mensaje = "texto"
+            
+            # Mensaje interactivo (botón seleccionado)
+            elif mensaje.get('type') == 'interactive' and mensaje['interactive'].get('type') == 'button_reply':
+                # Extraer el título del botón seleccionado
+                mensaje_texto = mensaje['interactive']['button_reply']['title']
+                telefono = mensaje['from']
+                
+                # Obtener el nombre del contacto o "Usuario" si no existe
+                contacto = data['entry'][0]['changes'][0]['value']['contacts'][0]
+                nombre = contacto['profile'].get('name', 'Usuario')
+                
+                tipo_mensaje = "interactivo"
+                
+    # Verificar si es una notificación de estado
+    elif 'statuses' in data['entry'][0]['changes'][0]['value']:
+        for status in data['entry'][0]['changes'][0]['value']['statuses']:
+            if status.get('status') in ['delivered', 'read', 'sent']:
+                tipo_mensaje = "notificacion"
+                # Nombre, teléfono y mensaje_texto quedan vacíos
+
+    return {
+        "tipo_mensaje": tipo_mensaje,
+        "nombre": nombre,
+        "telefono": telefono,
+        "mensaje_texto": mensaje_texto
+    }
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)

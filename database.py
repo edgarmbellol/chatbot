@@ -30,7 +30,7 @@ def consulta_todos_registros(db):
 
     estados = db["estado_usuarios"]
     # Consulta todos los registros en la colección
-    registros = list(collection.find())
+    registros = list(db["estado_usuarios"].find())
     
     # Retorna los registros sin jsonify
     return registros
