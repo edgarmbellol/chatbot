@@ -8,7 +8,7 @@ app = Flask(__name__)
 load_dotenv()
 
 # Define tu token de verificación
-VERIFY_TOKEN = "Sopo2024*"  # Cambia esto por tu token de verificación
+VERIFY_TOKEN = "Sopo"  # Cambia esto por tu token de verificación
 ACCESS_TOKEN = "{VERIFICATION_TOKEN}"  # Reemplaza esto con tu token de acceso
 PHONE_NUMBER_ID = "{PHONE_NUMBER_ID}"  # Reemplaza con tu número de teléfono ID
 

@@ -26,22 +26,29 @@ def conectar_base_datos(uri="mongodb://localhost:27017/", db_name="chat_bot"):
         print(f"Error al conectarse a la base de datos: {e}")
         return None
 
+def consulta_todos_registros(db):
+
+    estados = db["estado_usuarios"]
+    # Consulta todos los registros en la colección
+    registros = list(collection.find())
+    
+    # Retorna los registros sin jsonify
+    return registros
+
+
 # Agregar un n uevo registro a la base de datos
 def agregar_record(db,data):
-    collection = db["estados_usuarios"]
+    collection = db["estado_usuarios"]
     record = {
-        "id": data.get("id"),
         "Telefono": data.get("Telefono"),
         "Nombre": data.get("Nombre"),
         "Estado": data.get("Estado"),
-        "Historial": data.get("Historial", {"fecha": str(datetime.datetime.now()), "mensaje": ""}),
-        "UltimoMensaje": data.get("UltimoMensaje")
     }
     result = collection.insert_one(record)
     print(f"Registro agregado con ID: {str(result.inserted_id)}")
 
 # Consulta de registros en la base de datos
-def consulta_record(db,numero_telefono):
+def consulta_estado_usuario(db,numero_telefono):
     estados = db["estado_usuarios"]
 
     # Consulta en la base de datos a través de un número de teléfono
@@ -52,6 +59,7 @@ def consulta_record(db,numero_telefono):
 
     # Resultado de la consulta
     resultado = estados.find_one(filtro, proyeccion)
+    print(resultado)
 
     # Si se encontró un resultado y tiene el campo "Estado", devuelve su valor
     if resultado and "Estado" in resultado:
@@ -101,5 +109,5 @@ data = {
 # agregar_record(data)
 
 # Realizar una consulta
-print(consulta_record("12345678789"))
+# print(consulta_estado_usuario("12345678789"))
 # print(consulta_todos_registros())

@@ -1,0 +1,34 @@
+{
+    "bienvenida": [
+        {
+            "type": "reply",
+            "reply": {
+                "id": "consult",
+                "title": "Consulta"
+            }
+        },
+        {
+            "type": "reply",
+            "reply": {
+                "id": "schedule",
+                "title": "Agendar cita"
+            }
+        }
+    ],
+    "support_options": [
+        {
+            "type": "reply",
+            "reply": {
+                "id": "support",
+                "title": "Soporte técnico"
+            }
+        },
+        {
+            "type": "reply",
+            "reply": {
+                "id": "feedback",
+                "title": "Enviar comentarios"
+            }
+        }
+    ]
+}
