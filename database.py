@@ -35,17 +35,23 @@ def consulta_todos_registros(db):
     # Retorna los registros sin jsonify
     return registros
 
-
-# Agregar un n uevo registro a la base de datos
-def agregar_record(db,data):
+# Agrega un nuevo registro si no encuentra el numero de telefono si no lo actualiza
+def agregar_record_telefono(db,data):
     collection = db["estado_usuarios"]
-    record = {
-        "Telefono": data.get("Telefono"),
-        "Nombre": data.get("Nombre"),
-        "Estado": data.get("Estado"),
+    filtro = {"Telefono": data.get("Telefono")}  # Buscar por Telefono
+    nuevo_valor = {
+        "$set": {
+            "Nombre": data.get("Nombre"),
+            "Estado": data.get("Estado")
+        }
     }
-    result = collection.insert_one(record)
-    print(f"Registro agregado con ID: {str(result.inserted_id)}")
+
+    result = collection.update_one(filtro, nuevo_valor, upsert=True)
+
+    if result.matched_count > 0:
+        print("Estado actualizado para el teléfono existente.")
+    else:
+        print("Registro agregado como nuevo.")
 
 # Consulta de registros en la base de datos
 def consulta_estado_usuario(db,numero_telefono):

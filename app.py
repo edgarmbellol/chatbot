@@ -38,7 +38,7 @@ def receive_message():
     elif request.method == 'POST':
         # Mensaje recibido
         data = request.json
-        print("Mensaje recibido:", data)  # Imprime el mensaje completo para depuración
+        # print("Mensaje recibido:", data)  # Imprime el mensaje completo para depuración
 
         # Verifica si el campo 'messages' está presente en los datos recibidos
         try:
@@ -53,6 +53,10 @@ def receive_message():
             
                 # Revisa en qué estado se encuentra el usuario que está escribiendo
                 estado = consulta_estado_usuario(db, datos_mensaje['telefono'])
+
+                print(estado)
+                print(datos_mensaje['tipo_mensaje'])
+                print(datos_mensaje['mensaje_texto'])
                 
                 # Estado inicial cuando se empieza la conversacion no tiene el telefono guardado en la base de datos
                 if datos_mensaje['tipo_mensaje'] == "texto" and not estado:
@@ -60,11 +64,21 @@ def receive_message():
                     datos = {
                         "Telefono": datos_mensaje['telefono'],
                         "Nombre": datos_mensaje['nombre'],
-                        "Estado": "Bienvenido",
+                        "Estado": "bienvenido",
                     }
-                    agregar_record(db, datos)
+                    agregar_record_telefono(db, datos)
                     # Enviar mensaje de bienvenida
                     enviar_mensaje("En qué te puedo ayudar?", "bienvenida")
+
+                # Entra cuando se presiona el boton de AGENGAR CITA
+                elif datos_mensaje['tipo_mensaje'] == "interactivo" and estado == "bienvenido" and datos_mensaje['mensaje_texto'] == "Agendar cita":
+                    # Cambio de estado del usuario
+                    print("Aqui voy")
+                    pass
+                else:
+                    print("me pase")
+                    
+
 
         except KeyError as e:
             print(f"Clave faltante en el JSON recibido: {e}")
