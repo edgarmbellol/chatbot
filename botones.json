@@ -15,20 +15,86 @@
             }
         }
     ],
-    "support_options": [
+    "confirmacion": [
         {
             "type": "reply",
             "reply": {
-                "id": "support",
-                "title": "Soporte técnico"
+                "id": "si",
+                "title": "Si"
             }
         },
         {
             "type": "reply",
             "reply": {
-                "id": "feedback",
-                "title": "Enviar comentarios"
+                "id": "no",
+                "title": "No"
             }
         }
+    ],
+    "eps": [
+    {
+        "type": "reply",
+        "reply": {
+            "id": "sanitas",
+            "title": "Sanitas"
+        }
+    },
+    {
+        "type": "reply",
+        "reply": {
+            "id": "sura",
+            "title": "Sura"
+        }
+    },
+    {
+        "type": "reply",
+        "reply": {
+            "id": "nueva_eps",
+            "title": "Nueva EPS"
+        }
+    },
+    {
+        "type": "reply",
+        "reply": {
+            "id": "compensar",
+            "title": "Compensar"
+        }
+    },
+    {
+        "type": "reply",
+        "reply": {
+            "id": "coomeva",
+            "title": "Coomeva"
+        }
+    },
+    {
+        "type": "reply",
+        "reply": {
+            "id": "salud_total",
+            "title": "Salud Total"
+        }
+    },
+    {
+        "type": "reply",
+        "reply": {
+            "id": "famisanar",
+            "title": "Famisanar"
+        }
+    },
+    {
+        "type": "reply",
+        "reply": {
+            "id": "cafesalud",
+            "title": "Cafesalud"
+        }
+    },
+    {
+        "type": "reply",
+        "reply": {
+            "id": "medimas",
+            "title": "Medimás"
+        }
+    }
     ]
+
 }

@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, session
 from dotenv import load_dotenv
 import requests
 import os
@@ -6,6 +6,7 @@ import json
 from database import *
 
 app = Flask(__name__)
+app.secret_key = 'Sopo2024*'  # Cambia esto a algo más seguro en producción
 
 # Carga las variables del archivo .env
 load_dotenv()
@@ -13,6 +14,10 @@ load_dotenv()
 # Cargar la configuración de botones desde el archivo JSON
 with open("botones.json", "r") as file:
     botones = json.load(file)
+
+# Cargar el archivo JSON con la lista de EPS
+with open('eps_lista.json', 'r') as file:
+    eps_data = json.load(file)
 
 # Estado de los usuarios almacenado en memoria
 client_states = {}
@@ -43,7 +48,6 @@ def receive_message():
         # Verifica si el campo 'messages' está presente en los datos recibidos
         try:
             # OBTENER DATOS DEL USUARIO
-
             # Verificar tipo de mensaje
             datos_mensaje = verificar_tipo_mensaje(data)
             # Verificar en que estado se encuentra el numero qeu escribio
@@ -53,10 +57,6 @@ def receive_message():
             
                 # Revisa en qué estado se encuentra el usuario que está escribiendo
                 estado = consulta_estado_usuario(db, datos_mensaje['telefono'])
-
-                print(estado)
-                print(datos_mensaje['tipo_mensaje'])
-                print(datos_mensaje['mensaje_texto'])
                 
                 # Estado inicial cuando se empieza la conversacion no tiene el telefono guardado en la base de datos
                 if datos_mensaje['tipo_mensaje'] == "texto" and not estado:
@@ -68,15 +68,61 @@ def receive_message():
                     }
                     agregar_record_telefono(db, datos)
                     # Enviar mensaje de bienvenida
-                    enviar_mensaje("En qué te puedo ayudar?", "bienvenida")
+                    enviar_mensaje_botones("En qué te puedo ayudar?", "bienvenida")
 
                 # Entra cuando se presiona el boton de AGENGAR CITA
                 elif datos_mensaje['tipo_mensaje'] == "interactivo" and estado == "bienvenido" and datos_mensaje['mensaje_texto'] == "Agendar cita":
                     # Cambio de estado del usuario
-                    print("Aqui voy")
-                    pass
+                    datos = {
+                        "Telefono": datos_mensaje['telefono'],
+                        "Nombre": datos_mensaje['nombre'],
+                        "Estado": "cedula citas",
+                    }
+                    agregar_record_telefono(db,datos)
+                    # Enviar mensaje
+                    mensaje = "Seleccionaste citas medicas. Por favor ingresa tu numero de cedula:"
+                    enviar_mensaje_texto(mensaje)
+                
+                # Entra cuando se ingresa el numero de cedula de la persona luego de presionar el boton agendar cita
+                elif datos_mensaje['tipo_mensaje'] == "texto" and estado == "cedula citas":
+                    # Guardar cedula en variable de session
+                    session['cedula'] = datos_mensaje["mensaje_texto"]
+                    # Cambio de estado del usuario
+                    datos = {
+                        "Telefono": datos_mensaje['telefono'],
+                        "Nombre": datos_mensaje['nombre'],
+                        "Estado": "eps citas",
+                    }
+                    agregar_record_telefono(db,datos)
+                    # Enviar mensaje
+                    # Crear la lista numerada de EPS
+                    mensaje = "Selecciona numero correspondiente a EPS por favor:\n"
+                    for index, eps in enumerate(eps_data["eps"], start=1):
+                        mensaje += f"{index}. {eps['nombre']}\n"
+                    enviar_mensaje_texto(mensaje)
+                
+                # Entra cuando se selecciono eps a la que el usuario pertenece
+                elif datos_mensaje['tipo_mensaje'] == "texto" and estado == "eps citas":
+                    eps_seleccionada = verificar_eps_seleccionada(datos_mensaje["mensaje_texto"])
+                    if eps_seleccionada == "error":
+                        print("Error al seleccionar la EPS")
+                    else:
+                        session['eps'] = eps_seleccionada
+                        # Cambio de estado del usuario
+                        datos = {
+                            "Telefono": datos_mensaje['telefono'],
+                            "Nombre": datos_mensaje['nombre'],
+                            "Estado": "confirmacion citas",
+                        }
+                        agregar_record_telefono(db,datos)
+                        # Enviar mensaje
+                        mensaje = f"Los datos ingresados fueron. Cedula: *{session.get('cedula')}* con EPS: *{eps_seleccionada}* . Por favor selecciona si la información es correcta."
+                        enviar_mensaje_botones("Verificacion","confirmacion",cuerpo=mensaje)
+
                 else:
                     print("me pase")
+                    print(session.get('cedula'))
+                    print(session.get('eps'))
                     
 
 
@@ -87,13 +133,27 @@ def receive_message():
         return jsonify({"status": "success"}), 200
 
 
+# verificar que eps selecciono el usuario
+def verificar_eps_seleccionada(mensaje):
+# Verifica si el mensaje es un número y corresponde a una EPS
+    try:
+        seleccion = int(mensaje)
+        if 1 <= seleccion <= len(eps_data["eps"]):
+            eps_seleccionada = eps_data["eps"][seleccion - 1]["nombre"]
+            print(f"El usuario seleccionó la EPS: {eps_seleccionada}")
 
+            # Aquí puedes responder al usuario o procesar la selección
+            return eps_seleccionada
+        else:
+            return "error"
+    except ValueError:
+        print("Mensaje no válido. No es un número.")
+        return "error"
         
 
 
-# Funciones para enviar mensajes    
-# Usar los botones en la función
-def enviar_mensaje(encabezado,botones_llave):
+# Enviar mensaje con botones interactivos
+def enviar_mensaje_botones(encabezado,botones_llave,cuerpo="Selecciona una opción:"):
     botones_seleccionados = botones.get(botones_llave, [])
     url = WHATSAPP_API_URL
     headers = {
@@ -112,7 +172,7 @@ def enviar_mensaje(encabezado,botones_llave):
                 "text": encabezado
             },
             "body": {
-                "text": "Selecciona una opción:"
+                "text": cuerpo
             },
             "footer": {
                 "text": "Hospital de Sesquile"
@@ -120,6 +180,31 @@ def enviar_mensaje(encabezado,botones_llave):
             "action": {
                 "buttons": botones_seleccionados
             }
+        }
+    }
+
+    response = requests.post(url, headers=headers, data=json.dumps(data))
+
+    if response.status_code == 200:
+        print("Mensaje enviado con éxito.")
+    else:
+        print(f"Error al enviar el mensaje: {response.status_code}")
+        print(response.json())
+
+# Enviar mensaje con texto plano
+def enviar_mensaje_texto(encabezado):
+    url = WHATSAPP_API_URL
+    headers = {
+        "Authorization": f"Bearer {WHATSAPP_TOKEN}",
+        "Content-Type": "application/json"
+    }
+
+    data = {
+        "messaging_product": "whatsapp",
+        "to": RECIPIENT_PHONE_NUMBER,
+        "type": "text",
+        "text": {
+            "body": encabezado
         }
     }
 

@@ -1,0 +1,72 @@
+{
+    "eps": [
+        {
+            "id": "sanitas",
+            "nombre": "Sanitas"
+        },
+        {
+            "id": "sura",
+            "nombre": "Sura"
+        },
+        {
+            "id": "nueva_eps",
+            "nombre": "Nueva EPS"
+        },
+        {
+            "id": "compensar",
+            "nombre": "Compensar"
+        },
+        {
+            "id": "famisanar",
+            "nombre": "Famisanar"
+        },
+        {
+            "id": "salud_total",
+            "nombre": "Salud Total"
+        },
+        {
+            "id": "coomeva",
+            "nombre": "Coomeva"
+        },
+        {
+            "id": "medimas",
+            "nombre": "Medimas"
+        },
+        {
+            "id": "mutual_ser",
+            "nombre": "Mutual Ser"
+        },
+        {
+            "id": "emssanar",
+            "nombre": "Emssanar"
+        },
+        {
+            "id": "asmet_salud",
+            "nombre": "Asmet Salud"
+        },
+        {
+            "id": "savia_salud",
+            "nombre": "Savia Salud"
+        },
+        {
+            "id": "dusakawi",
+            "nombre": "Dusakawi"
+        },
+        {
+            "id": "capital_salud",
+            "nombre": "Capital Salud"
+        },
+        {
+            "id": "eps_sura",
+            "nombre": "EPS Sura"
+        },
+        {
+            "id": "cafe_salud",
+            "nombre": "CafeSalud"
+        },
+        {
+            "id": "otra",
+            "nombre": "Otra"
+        }
+    ]
+}
