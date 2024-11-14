@@ -26,14 +26,6 @@ def conectar_base_datos(uri="mongodb://localhost:27017/", db_name="chat_bot"):
         print(f"Error al conectarse a la base de datos: {e}")
         return None
 
-def consulta_todos_registros(db):
-
-    estados = db["estado_usuarios"]
-    # Consulta todos los registros en la colección
-    registros = list(db["estado_usuarios"].find())
-    
-    # Retorna los registros sin jsonify
-    return registros
 
 # Agrega un nuevo registro si no encuentra el numero de telefono si no lo actualiza
 def agregar_record_telefono(db,data):
@@ -42,7 +34,7 @@ def agregar_record_telefono(db,data):
     nuevo_valor = {
         "$set": {
             "Nombre": data.get("Nombre"),
-            "Estado": data.get("Estado")
+            "Estado": data.get("Estado"),
         }
     }
 
@@ -52,6 +44,24 @@ def agregar_record_telefono(db,data):
         print("Estado actualizado para el teléfono existente.")
     else:
         print("Registro agregado como nuevo.")
+
+def ingresar_dato_criterio(db,telefono,criterio,cedula):
+        # Actualizar el campo 'cedula' en el documento que coincide con el teléfono
+        resultado = db["estado_usuarios"].update_one(
+            {"Telefono": telefono},
+            {"$set": {criterio: cedula}}
+    )
+
+def tomar_registro(db, telefono, criterio):
+    # Buscar el documento que coincide con el número de teléfono y obtener solo el campo especificado
+    dato = db["estado_usuarios"].find_one({"Telefono": telefono}, {criterio: 1})
+    
+    # Verificar si se encontró el documento y si el criterio está presente
+    if dato and criterio in dato:
+        return dato[criterio]
+    else:
+        return f"No se encontró el criterio '{criterio}' para el teléfono dado" if dato else "Usuario no encontrado"
+
 
 # Consulta de registros en la base de datos
 def consulta_estado_usuario(db,numero_telefono):
@@ -73,33 +83,6 @@ def consulta_estado_usuario(db,numero_telefono):
     
     # Si no se encuentra el resultado, devuelve una lista vacía
     return []
-
-
-# Actualzia el estado del numero de telefono
-def actualizar_estado(db,numero_telefono, nuevo_estado, mensaje=""):
-    estados = db["estado_usuarios"]
-    # Buscar el documento del teléfono
-    documento = estados.find_one({"Telefono": numero_telefono})
-
-    if documento:
-        # Si existe, actualizamos el estado y agregamos el nuevo mensaje al historial
-        estados.update_one(
-            {"Telefono": numero_telefono},
-            {
-                "$set": {"Estado": nuevo_estado},  # Actualiza el estado
-                "$push": {"Historial": {"fecha": "2024-11-11T10:00:00", "mensaje": mensaje}}  # Agrega el mensaje
-            }
-        )
-    else:
-        # Si no existe, crear un nuevo documento para el teléfono
-        estados.insert_one({
-            "Telefono": numero_telefono,
-            "Estado": nuevo_estado,
-            "UltimoMensaje": mensaje,
-            "Historial": [{"fecha": "2024-11-11T10:00:00", "mensaje": mensaje}]
-        })
-
-
 
 # Datos que deseas insertar
 data = {

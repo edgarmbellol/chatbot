@@ -71,7 +71,7 @@ def receive_message():
                     enviar_mensaje_botones("En qué te puedo ayudar?", "bienvenida")
 
                 # Entra cuando se presiona el boton de AGENGAR CITA
-                elif datos_mensaje['tipo_mensaje'] == "interactivo" and estado == "bienvenido" and datos_mensaje['mensaje_texto'] == "Agendar cita":
+                elif estado == "bienvenido" and datos_mensaje['mensaje_texto'] == "Agendar cita":
                     # Cambio de estado del usuario
                     datos = {
                         "Telefono": datos_mensaje['telefono'],
@@ -84,14 +84,15 @@ def receive_message():
                     enviar_mensaje_texto(mensaje)
                 
                 # Entra cuando se ingresa el numero de cedula de la persona luego de presionar el boton agendar cita
-                elif datos_mensaje['tipo_mensaje'] == "texto" and estado == "cedula citas":
-                    # Guardar cedula en variable de session
-                    session['cedula'] = datos_mensaje["mensaje_texto"]
+                elif estado == "cedula citas":
                     # Cambio de estado del usuario
+                    # Agregar cedula a la base de datos
+                    cedula = datos_mensaje["mensaje_texto"]
+                    ingresar_dato_criterio(db,datos_mensaje['telefono'],"Cedula",cedula)
                     datos = {
                         "Telefono": datos_mensaje['telefono'],
                         "Nombre": datos_mensaje['nombre'],
-                        "Estado": "eps citas",
+                        "Estado": "eps citas"
                     }
                     agregar_record_telefono(db,datos)
                     # Enviar mensaje
@@ -102,29 +103,70 @@ def receive_message():
                     enviar_mensaje_texto(mensaje)
                 
                 # Entra cuando se selecciono eps a la que el usuario pertenece
-                elif datos_mensaje['tipo_mensaje'] == "texto" and estado == "eps citas":
+                elif estado == "eps citas":
                     eps_seleccionada = verificar_eps_seleccionada(datos_mensaje["mensaje_texto"])
                     if eps_seleccionada == "error":
-                        print("Error al seleccionar la EPS")
+                        datos = {
+                            "Telefono": datos_mensaje['telefono'],
+                            "Nombre": datos_mensaje['nombre'],
+                            "Estado": "cedula citas"
+                        }
+                        # Crear la lista numerada de EPS
+                        enviar_mensaje_texto("Error al seleccionar EPS vuelve a intentarlo.")
+                        mensaje = "Selecciona numero correspondiente a EPS por favor:\n"
+                        for index, eps in enumerate(eps_data["eps"], start=1):
+                            mensaje += f"{index}. {eps['nombre']}\n"
+                        enviar_mensaje_texto(mensaje)
+                    elif eps_seleccionada == "Otra":
+                        # Seleccionar otra eps
+                        enviar_mensaje_texto("Por favor escribe la EPS a la que perteneces")
+                        datos = {
+                            "Telefono": datos_mensaje['telefono'],
+                            "Nombre": datos_mensaje['nombre'],
+                            "Estado": "confirmacion citas"
+                        }
                     else:
-                        session['eps'] = eps_seleccionada
+                        ingresar_dato_criterio(db,datos_mensaje['telefono'],"EPS",eps_seleccionada)
                         # Cambio de estado del usuario
                         datos = {
                             "Telefono": datos_mensaje['telefono'],
                             "Nombre": datos_mensaje['nombre'],
-                            "Estado": "confirmacion citas",
+                            "Estado": "confirmacion citas"
                         }
-                        agregar_record_telefono(db,datos)
                         # Enviar mensaje
-                        mensaje = f"Los datos ingresados fueron. Cedula: *{session.get('cedula')}* con EPS: *{eps_seleccionada}* . Por favor selecciona si la información es correcta."
+                        mensaje = f"Los datos ingresados fueron. Cedula: *{tomar_registro(db,datos_mensaje['telefono'],"Cedula")}* con EPS: *{eps_seleccionada}* . Por favor selecciona si la información es correcta."
                         enviar_mensaje_botones("Verificacion","confirmacion",cuerpo=mensaje)
+                    agregar_record_telefono(db,datos)
 
-                else:
-                    print("me pase")
-                    print(session.get('cedula'))
-                    print(session.get('eps'))
+                # Entra cuando se selecciona una opcion de si o no a confirmacion citas
+                elif estado == "confirmacion citas":
+                    if datos_mensaje["mensaje_texto"] == "Si":
+                        # Los datos ingresados por el usuario son correctos
+                        # Proceso de verificacion de datos en la base de datos
+                        pass
+                    else:
+                        # Los datos ingresados por el usuario son incorrectos
+                        # Cambiar el estado para volver a pedir los datos
+                        datos = {
+                            "Telefono": datos_mensaje['telefono'],
+                            "Nombre": datos_mensaje['nombre'],
+                            "Estado": "bienvenido"
+                        }
+                        agregar_record_telefono(db, datos)
+                        # Enviar mensaje de bienvenida
+                        enviar_mensaje_botones("En qué te puedo ayudar?", "bienvenida")
+ 
+                else: 
+                    # Si ingresa aqui se selecciona una opcion no valida
+                    datos = {
+                            "Telefono": datos_mensaje['telefono'],
+                            "Nombre": datos_mensaje['nombre'],
+                            "Estado": "bienvenido"
+                    }
+                    agregar_record_telefono(db, datos)
+                    # Enviar mensaje de bienvenida
+                    enviar_mensaje_botones("Algo salio mal vuelve a intentar", "bienvenida")
                     
-
 
         except KeyError as e:
             print(f"Clave faltante en el JSON recibido: {e}")
