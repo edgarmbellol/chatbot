@@ -26,6 +26,36 @@ def conectar_base_datos(uri="mongodb://localhost:27017/", db_name="chat_bot"):
         print(f"Error al conectarse a la base de datos: {e}")
         return None
 
+# Actualizar estado de acuerdo a numero telefonico
+def actualizar_estado(db, telefono, estado):
+    """
+    Actualiza el estado de un usuario en la base de datos de MongoDB.
+
+    Args:
+        db (Database): Instancia de la base de datos MongoDB.
+        telefono (str): Número de teléfono del usuario a actualizar.
+        estado (str): Nuevo valor para el campo "Estado".
+
+    Returns:
+        dict: Resultado de la operación de actualización.
+    """
+    try:
+        # Define el filtro para encontrar el documento
+        filtro = {"Telefono": telefono}
+        
+        # Define los cambios a realizar
+        actualizacion = {"$set": {"Estado": estado}}
+        
+        # Actualiza el documento
+        resultado = db.estado_usuarios.update_one(filtro, actualizacion)
+        
+        # Verifica si se modificó algún documento
+        if resultado.matched_count > 0:
+            return {"status": "success", "modified_count": resultado.modified_count}
+        else:
+            return {"status": "not_found", "message": "No se encontró el usuario con el teléfono proporcionado."}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 # Agrega un nuevo registro si no encuentra el numero de telefono si no lo actualiza
 def agregar_record_telefono(db,data):
@@ -45,11 +75,11 @@ def agregar_record_telefono(db,data):
     else:
         print("Registro agregado como nuevo.")
 
-def ingresar_dato_criterio(db,telefono,criterio,cedula):
+def ingresar_dato_criterio(db,telefono,criterio,valor):
         # Actualizar el campo 'cedula' en el documento que coincide con el teléfono
         resultado = db["estado_usuarios"].update_one(
             {"Telefono": telefono},
-            {"$set": {criterio: cedula}}
+            {"$set": {criterio: valor}}
     )
 
 def tomar_registro(db, telefono, criterio):

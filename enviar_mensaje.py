@@ -1,19 +1,36 @@
 import requests
 import json
+import os
+from dotenv import load_dotenv
 
-# Reemplaza con tus credenciales y configuración
-ACCESS_TOKEN = "EAAPCuwU6mgQBO1kwv0xsm61Y6bE0o8q4mWP9AW9QYnvRQlHuD2ZBAOJJ1ZCfvBnZBdG78xGsATwrK2pDvZBjmFX8ipTctUDbwalOesKZAleYxaEy4ekJUCfSy80gQdAcsx9K6GBoqFwTazif1pR2nXTFeRV5GDaUz4awDlvWNNujqYlx8S7BxhZCwY0xZBEYUkuZAO1ueqJyWvhZCcPl24HgR9NkDsD5ymEWfMA7x2UTu46cghZAHBupeU"  # Tu token de acceso de WhatsApp Business API
-PHONE_NUMBER_ID = "418920651309807"  # El ID del número de teléfono de tu cuenta de WhatsApp Business
+
+# Carga las variables del archivo .env
+load_dotenv()
+
+# Cargar la configuración de botones desde el archivo JSON
+with open("botones.json", "r") as file:
+    botones = json.load(file)
+
+
+# Configura el token de acceso de la API de WhatsApp
+VERIFY_TOKEN = "Sopo"  # Cambia esto por tu token de verificación
+WHATSAPP_TOKEN = os.getenv("VERIFICATION_TOKEN")
+PHONE_NUMBER_ID = os.getenv("PHONE_NUMBER_ID")
+VERSION = os.getenv("VERSION")
+WHATSAPP_API_URL = "https://graph.facebook.com/v20.0/418920651309807/messages"  # Reemplaza {PHONE_NUMBER_ID} con el ID de tu número de WhatsApp Business
 RECIPIENT_PHONE_NUMBER = "whatsapp:+573057499964"  # Número de teléfono del destinatario (formato E.164)
 
-def send_message_with_buttons():
-    url = f"https://graph.facebook.com/v21.0/{PHONE_NUMBER_ID}/messages"
+
+
+# Enviar mensaje con botones interactivos
+def enviar_mensaje_botones(encabezado,botones_llave,cuerpo="Selecciona una opción:"):
+    botones_seleccionados = botones.get(botones_llave, [])
+    url = WHATSAPP_API_URL
     headers = {
-        "Authorization": f"Bearer {ACCESS_TOKEN}",
+        "Authorization": f"Bearer {WHATSAPP_TOKEN}",
         "Content-Type": "application/json"
     }
 
-    # Estructura del mensaje con botones
     data = {
         "messaging_product": "whatsapp",
         "to": RECIPIENT_PHONE_NUMBER,
@@ -22,44 +39,49 @@ def send_message_with_buttons():
             "type": "button",
             "header": {
                 "type": "text",
-                "text": "¡Hola! ¿Cómo te puedo ayudar?"
+                "text": encabezado
             },
             "body": {
-                "text": "Selecciona una opción:"
+                "text": cuerpo
             },
             "footer": {
-                "text": "Hospital XYZ"
+                "text": "Hospital de Sesquile"
             },
             "action": {
-                "buttons": [
-                    {
-                        "type": "reply",
-                        "reply": {
-                            "id": "consult",
-                            "title": "Consulta"
-                        }
-                    },
-                    {
-                        "type": "reply",
-                        "reply": {
-                            "id": "schedule",
-                            "title": "Agendar cita"
-                        }
-                    }
-                ]
+                "buttons": botones_seleccionados
             }
         }
     }
 
-    # Enviar la solicitud a la API de WhatsApp
     response = requests.post(url, headers=headers, data=json.dumps(data))
 
-    # Comprobar la respuesta
     if response.status_code == 200:
         print("Mensaje enviado con éxito.")
     else:
         print(f"Error al enviar el mensaje: {response.status_code}")
         print(response.json())
 
-# Ejecuta la función para enviar el mensaje
-send_message_with_buttons()
+# Enviar mensaje con texto plano
+def enviar_mensaje_texto(encabezado):
+    url = WHATSAPP_API_URL
+    headers = {
+        "Authorization": f"Bearer {WHATSAPP_TOKEN}",
+        "Content-Type": "application/json"
+    }
+
+    data = {
+        "messaging_product": "whatsapp",
+        "to": RECIPIENT_PHONE_NUMBER,
+        "type": "text",
+        "text": {
+            "body": encabezado
+        }
+    }
+
+    response = requests.post(url, headers=headers, data=json.dumps(data))
+
+    if response.status_code == 200:
+        print("Mensaje enviado con éxito.")
+    else:
+        print(f"Error al enviar el mensaje: {response.status_code}")
+        print(response.json())

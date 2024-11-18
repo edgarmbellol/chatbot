@@ -63,10 +63,6 @@
         {
             "id": "cafe_salud",
             "nombre": "CafeSalud"
-        },
-        {
-            "id": "otra",
-            "nombre": "Otra"
         }
     ]
 }

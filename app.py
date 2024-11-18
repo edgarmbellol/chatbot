@@ -4,31 +4,13 @@ import requests
 import os
 import json
 from database import *
+from estados import *
+from enviar_mensaje import *
 
 app = Flask(__name__)
 app.secret_key = 'Sopo2024*'  # Cambia esto a algo más seguro en producción
 
-# Carga las variables del archivo .env
-load_dotenv()
-
-# Cargar la configuración de botones desde el archivo JSON
-with open("botones.json", "r") as file:
-    botones = json.load(file)
-
-# Cargar el archivo JSON con la lista de EPS
-with open('eps_lista.json', 'r') as file:
-    eps_data = json.load(file)
-
-# Estado de los usuarios almacenado en memoria
-client_states = {}
-
-# Configura el token de acceso de la API de WhatsApp
 VERIFY_TOKEN = "Sopo"  # Cambia esto por tu token de verificación
-WHATSAPP_TOKEN = os.getenv("VERIFICATION_TOKEN")
-PHONE_NUMBER_ID = os.getenv("PHONE_NUMBER_ID")
-VERSION = os.getenv("VERSION")
-WHATSAPP_API_URL = "https://graph.facebook.com/v20.0/418920651309807/messages"  # Reemplaza {PHONE_NUMBER_ID} con el ID de tu número de WhatsApp Business
-RECIPIENT_PHONE_NUMBER = "whatsapp:+573057499964"  # Número de teléfono del destinatario (formato E.164)
 
 # Endpoint para recibir mensajes
 @app.route('/webhook', methods=['POST','GET'])
@@ -55,107 +37,44 @@ def receive_message():
                 # Establecer conexión con la base de datos
                 db = conectar_base_datos()
             
+                telefono = datos_mensaje['telefono']
+                nombre = datos_mensaje['nombre']
+                mensaje = datos_mensaje["mensaje_texto"]
+
                 # Revisa en qué estado se encuentra el usuario que está escribiendo
-                estado = consulta_estado_usuario(db, datos_mensaje['telefono'])
+                estado = consulta_estado_usuario(db, telefono)
                 
                 # Estado inicial cuando se empieza la conversacion no tiene el telefono guardado en la base de datos
                 if datos_mensaje['tipo_mensaje'] == "texto" and not estado:
-                    # Ingresar datos para poner un estado al nuevo número
-                    datos = {
-                        "Telefono": datos_mensaje['telefono'],
-                        "Nombre": datos_mensaje['nombre'],
-                        "Estado": "bienvenido",
-                    }
-                    agregar_record_telefono(db, datos)
-                    # Enviar mensaje de bienvenida
-                    enviar_mensaje_botones("En qué te puedo ayudar?", "bienvenida")
+                    # Actualiza el estado a bienvenida y envia mensaje de bienvenida
+                    bienvenida(db,telefono,nombre)
 
                 # Entra cuando se presiona el boton de AGENGAR CITA
                 elif estado == "bienvenido" and datos_mensaje['mensaje_texto'] == "Agendar cita":
-                    # Cambio de estado del usuario
-                    datos = {
-                        "Telefono": datos_mensaje['telefono'],
-                        "Nombre": datos_mensaje['nombre'],
-                        "Estado": "cedula citas",
-                    }
-                    agregar_record_telefono(db,datos)
-                    # Enviar mensaje
-                    mensaje = "Seleccionaste citas medicas. Por favor ingresa tu numero de cedula:"
-                    enviar_mensaje_texto(mensaje)
+                    # Actualiza estado a cedula citas y envia mensaje pidiendo cedula
+                    cedula_citas(db,telefono)
                 
                 # Entra cuando se ingresa el numero de cedula de la persona luego de presionar el boton agendar cita
                 elif estado == "cedula citas":
-                    # Cambio de estado del usuario
                     # Agregar cedula a la base de datos
-                    cedula = datos_mensaje["mensaje_texto"]
-                    ingresar_dato_criterio(db,datos_mensaje['telefono'],"Cedula",cedula)
-                    datos = {
-                        "Telefono": datos_mensaje['telefono'],
-                        "Nombre": datos_mensaje['nombre'],
-                        "Estado": "eps citas"
-                    }
-                    agregar_record_telefono(db,datos)
-                    # Enviar mensaje
-                    # Crear la lista numerada de EPS
-                    mensaje = "Selecciona numero correspondiente a EPS por favor:\n"
-                    for index, eps in enumerate(eps_data["eps"], start=1):
-                        mensaje += f"{index}. {eps['nombre']}\n"
-                    enviar_mensaje_texto(mensaje)
+                    cedula = mensaje
+                    eps_citas(db,telefono,cedula)
                 
                 # Entra cuando se selecciono eps a la que el usuario pertenece
                 elif estado == "eps citas":
-                    eps_seleccionada = verificar_eps_seleccionada(datos_mensaje["mensaje_texto"])
-                    if eps_seleccionada == "error":
-                        datos = {
-                            "Telefono": datos_mensaje['telefono'],
-                            "Nombre": datos_mensaje['nombre'],
-                            "Estado": "cedula citas"
-                        }
-                        # Crear la lista numerada de EPS
-                        enviar_mensaje_texto("Error al seleccionar EPS vuelve a intentarlo.")
-                        mensaje = "Selecciona numero correspondiente a EPS por favor:\n"
-                        for index, eps in enumerate(eps_data["eps"], start=1):
-                            mensaje += f"{index}. {eps['nombre']}\n"
-                        enviar_mensaje_texto(mensaje)
-                    elif eps_seleccionada == "Otra":
-                        # Seleccionar otra eps
-                        enviar_mensaje_texto("Por favor escribe la EPS a la que perteneces")
-                        datos = {
-                            "Telefono": datos_mensaje['telefono'],
-                            "Nombre": datos_mensaje['nombre'],
-                            "Estado": "confirmacion citas"
-                        }
-                    else:
-                        ingresar_dato_criterio(db,datos_mensaje['telefono'],"EPS",eps_seleccionada)
-                        # Cambio de estado del usuario
-                        datos = {
-                            "Telefono": datos_mensaje['telefono'],
-                            "Nombre": datos_mensaje['nombre'],
-                            "Estado": "confirmacion citas"
-                        }
-                        # Enviar mensaje
-                        mensaje = f"Los datos ingresados fueron. Cedula: *{tomar_registro(db,datos_mensaje['telefono'],"Cedula")}* con EPS: *{eps_seleccionada}* . Por favor selecciona si la información es correcta."
-                        enviar_mensaje_botones("Verificacion","confirmacion",cuerpo=mensaje)
-                    agregar_record_telefono(db,datos)
+
+                    confirmacion_informacion(db,telefono,nombre,mensaje)
 
                 # Entra cuando se selecciona una opcion de si o no a confirmacion citas
-                elif estado == "confirmacion citas":
+                elif estado == "confirmacion informacion":
                     if datos_mensaje["mensaje_texto"] == "Si":
                         # Los datos ingresados por el usuario son correctos
-                        # Proceso de verificacion de datos en la base de datos
-                        pass
+                        # BUSCAR EN LA BASE DE DATOS SI EXISTE COINCIDENCIA CON LA CEDULA
+                        verificar_paciente(db,telefono)
                     else:
-                        # Los datos ingresados por el usuario son incorrectos
-                        # Cambiar el estado para volver a pedir los datos
-                        datos = {
-                            "Telefono": datos_mensaje['telefono'],
-                            "Nombre": datos_mensaje['nombre'],
-                            "Estado": "bienvenido"
-                        }
-                        agregar_record_telefono(db, datos)
-                        # Enviar mensaje de bienvenida
-                        enviar_mensaje_botones("En qué te puedo ayudar?", "bienvenida")
- 
+                        # Cambia el estado a bienvenido y redirije a la primera instancia
+                        datos_incorrectos(db,telefono)
+
                 else: 
                     # Si ingresa aqui se selecciona una opcion no valida
                     datos = {
@@ -173,90 +92,6 @@ def receive_message():
             # Puedes agregar una respuesta o manejo adicional aquí si lo deseas
 
         return jsonify({"status": "success"}), 200
-
-
-# verificar que eps selecciono el usuario
-def verificar_eps_seleccionada(mensaje):
-# Verifica si el mensaje es un número y corresponde a una EPS
-    try:
-        seleccion = int(mensaje)
-        if 1 <= seleccion <= len(eps_data["eps"]):
-            eps_seleccionada = eps_data["eps"][seleccion - 1]["nombre"]
-            print(f"El usuario seleccionó la EPS: {eps_seleccionada}")
-
-            # Aquí puedes responder al usuario o procesar la selección
-            return eps_seleccionada
-        else:
-            return "error"
-    except ValueError:
-        print("Mensaje no válido. No es un número.")
-        return "error"
-        
-
-
-# Enviar mensaje con botones interactivos
-def enviar_mensaje_botones(encabezado,botones_llave,cuerpo="Selecciona una opción:"):
-    botones_seleccionados = botones.get(botones_llave, [])
-    url = WHATSAPP_API_URL
-    headers = {
-        "Authorization": f"Bearer {WHATSAPP_TOKEN}",
-        "Content-Type": "application/json"
-    }
-
-    data = {
-        "messaging_product": "whatsapp",
-        "to": RECIPIENT_PHONE_NUMBER,
-        "type": "interactive",
-        "interactive": {
-            "type": "button",
-            "header": {
-                "type": "text",
-                "text": encabezado
-            },
-            "body": {
-                "text": cuerpo
-            },
-            "footer": {
-                "text": "Hospital de Sesquile"
-            },
-            "action": {
-                "buttons": botones_seleccionados
-            }
-        }
-    }
-
-    response = requests.post(url, headers=headers, data=json.dumps(data))
-
-    if response.status_code == 200:
-        print("Mensaje enviado con éxito.")
-    else:
-        print(f"Error al enviar el mensaje: {response.status_code}")
-        print(response.json())
-
-# Enviar mensaje con texto plano
-def enviar_mensaje_texto(encabezado):
-    url = WHATSAPP_API_URL
-    headers = {
-        "Authorization": f"Bearer {WHATSAPP_TOKEN}",
-        "Content-Type": "application/json"
-    }
-
-    data = {
-        "messaging_product": "whatsapp",
-        "to": RECIPIENT_PHONE_NUMBER,
-        "type": "text",
-        "text": {
-            "body": encabezado
-        }
-    }
-
-    response = requests.post(url, headers=headers, data=json.dumps(data))
-
-    if response.status_code == 200:
-        print("Mensaje enviado con éxito.")
-    else:
-        print(f"Error al enviar el mensaje: {response.status_code}")
-        print(response.json())
 
 
 # Función para definir el tipo de mensaje que llega
