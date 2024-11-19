@@ -1,0 +1,68 @@
+{
+    "especialidades": [
+        {
+            "id": "medicina_general",
+            "nombre": "Medicina General"
+        },
+        {
+            "id": "pediatria",
+            "nombre": "Pediatría"
+        },
+        {
+            "id": "ginecologia",
+            "nombre": "Ginecología"
+        },
+        {
+            "id": "odontologia",
+            "nombre": "Odontología"
+        },
+        {
+            "id": "dermatologia",
+            "nombre": "Dermatología"
+        },
+        {
+            "id": "oftalmologia",
+            "nombre": "Oftalmología"
+        },
+        {
+            "id": "cardiologia",
+            "nombre": "Cardiología"
+        },
+        {
+            "id": "psicologia",
+            "nombre": "Psicología"
+        },
+        {
+            "id": "medicina_interna",
+            "nombre": "Medicina Interna"
+        },
+        {
+            "id": "ortopedia",
+            "nombre": "Ortopedia"
+        },
+        {
+            "id": "otorinolaringologia",
+            "nombre": "Otorrinolaringología"
+        },
+        {
+            "id": "urologia",
+            "nombre": "Urología"
+        },
+        {
+            "id": "endocrinologia",
+            "nombre": "Endocrinología"
+        },
+        {
+            "id": "neurologia",
+            "nombre": "Neurología"
+        },
+        {
+            "id": "psiquiatria",
+            "nombre": "Psiquiatría"
+        },
+        {
+            "id": "rehabilitacion_fisica",
+            "nombre": "Rehabilitación Física"
+        }
+    ]
+}

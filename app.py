@@ -67,7 +67,7 @@ def receive_message():
 
                 # Entra cuando se selecciona una opcion de si o no a confirmacion citas
                 elif estado == "confirmacion informacion":
-                    if datos_mensaje["mensaje_texto"] == "Si":
+                    if mensaje == "Si":
                         # Los datos ingresados por el usuario son correctos
                         # BUSCAR EN LA BASE DE DATOS SI EXISTE COINCIDENCIA CON LA CEDULA
                         verificar_paciente(db,telefono)
@@ -75,6 +75,17 @@ def receive_message():
                         # Cambia el estado a bienvenido y redirije a la primera instancia
                         datos_incorrectos(db,telefono)
 
+                elif estado == "verificar usuario citas":
+                    # Verifica que el usuario verifique sus datos
+                    if mensaje == "Si":
+                        # El usuario procede a seleccionar especialidad
+                        seleccionar_especialidad(db,telefono)
+                    else:
+                        # Se redirije a la seccion bienvenido
+                        datos_incorrectos(db,telefono)
+                        
+                elif estado == "seleccionar especialidad":
+                    confirmar_especialidad(db,telefono,mensaje)
                 else: 
                     # Si ingresa aqui se selecciona una opcion no valida
                     datos = {
