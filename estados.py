@@ -1,7 +1,8 @@
 from database import *
 from enviar_mensaje import * 
 import json
-from interfaz_citisalud import database_citi as hospital
+# from interfaz_citisalud import database_citi as hospital
+from interfaz_CNT import database_citi as hospital
 
 # Cargar el archivo JSON con la lista de EPS
 with open('eps_lista.json', 'r') as file:
@@ -31,6 +32,7 @@ def cedula_citas(db,telefono):
     mensaje = "Seleccionaste citas medicas. Por favor ingresa tu numero de cedula:"
     enviar_mensaje_texto(telefono,mensaje)
     return
+
 
 def eps_citas(db,telefono,cedula):
     ingresar_dato_criterio(db,telefono,"Cedula",cedula)

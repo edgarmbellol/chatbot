@@ -23,6 +23,7 @@ def receive_message():
         else:
             return "Unauthorized", 403
     elif request.method == 'POST':
+        
         # Mensaje recibido
         data = request.json
         # print("Mensaje recibido:", data)  # Imprime el mensaje completo para depuración
@@ -95,7 +96,7 @@ def receive_message():
                     }
                     agregar_record_telefono(db, datos)
                     # Enviar mensaje de bienvenida
-                    enviar_mensaje_botones("Algo salio mal vuelve a intentar", "bienvenida")
+                    enviar_mensaje_botones(telefono,"Algo salio mal vuelve a intentar", "bienvenida")
                     
 
         except KeyError as e:
