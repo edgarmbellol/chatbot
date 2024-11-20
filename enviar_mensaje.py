@@ -18,12 +18,13 @@ WHATSAPP_TOKEN = os.getenv("VERIFICATION_TOKEN")
 PHONE_NUMBER_ID = os.getenv("PHONE_NUMBER_ID")
 VERSION = os.getenv("VERSION")
 WHATSAPP_API_URL = "https://graph.facebook.com/v20.0/418920651309807/messages"  # Reemplaza {PHONE_NUMBER_ID} con el ID de tu número de WhatsApp Business
-RECIPIENT_PHONE_NUMBER = "whatsapp:+573057499964"  # Número de teléfono del destinatario (formato E.164)
+# RECIPIENT_PHONE_NUMBER = "whatsapp:+573057499964"  # Número de teléfono del destinatario (formato E.164)
 
 
 
 # Enviar mensaje con botones interactivos
-def enviar_mensaje_botones(encabezado,botones_llave,cuerpo="Selecciona una opción:"):
+def enviar_mensaje_botones(telefono,encabezado,botones_llave,cuerpo="Selecciona una opción:"):
+    RECIPIENT_PHONE_NUMBER = "whatsapp:+"+telefono
     botones_seleccionados = botones.get(botones_llave, [])
     url = WHATSAPP_API_URL
     headers = {
@@ -62,7 +63,8 @@ def enviar_mensaje_botones(encabezado,botones_llave,cuerpo="Selecciona una opci�
         print(response.json())
 
 # Enviar mensaje con texto plano
-def enviar_mensaje_texto(encabezado):
+def enviar_mensaje_texto(telefono,encabezado):
+    RECIPIENT_PHONE_NUMBER = "whatsapp:+"+telefono
     url = WHATSAPP_API_URL
     headers = {
         "Authorization": f"Bearer {WHATSAPP_TOKEN}",

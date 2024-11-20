@@ -20,7 +20,7 @@ def bienvenida(db,telefono,nombre):
                 "Estado": estado
             }
     agregar_record_telefono(db,datos)
-    enviar_mensaje_botones("En qué te puedo ayudar?", "bienvenida")
+    enviar_mensaje_botones(telefono,"En qué te puedo ayudar?", "bienvenida")
     return
 
 def cedula_citas(db,telefono):
@@ -29,7 +29,7 @@ def cedula_citas(db,telefono):
 
     # Enviar mensaje
     mensaje = "Seleccionaste citas medicas. Por favor ingresa tu numero de cedula:"
-    enviar_mensaje_texto(mensaje)
+    enviar_mensaje_texto(telefono,mensaje)
     return
 
 def eps_citas(db,telefono,cedula):
@@ -41,7 +41,7 @@ def eps_citas(db,telefono,cedula):
     mensaje = "Selecciona numero correspondiente a EPS por favor:\n"
     for index, eps in enumerate(eps_data["eps"], start=1):
         mensaje += f"{index}. {eps['nombre']}\n"
-    enviar_mensaje_texto(mensaje)
+    enviar_mensaje_texto(telefono,mensaje)
     return
 
 def confirmacion_informacion(db,telefono,nombre,mensaje):
@@ -51,17 +51,17 @@ def confirmacion_informacion(db,telefono,nombre,mensaje):
 
     if eps_seleccionada == "error":
         # Actualice el estado y vuelva a enviar el mensaje
-        enviar_mensaje_texto("Error al seleccionar EPS vuelve a intentarlo.")
+        enviar_mensaje_texto(telefono,"Error al seleccionar EPS vuelve a intentarlo.")
         estado = "cedula citas"
         # Crear la lista numerada de EPS
         mensaje = "Selecciona numero correspondiente a EPS por favor:\n"
         for index, eps in enumerate(eps_data["eps"], start=1):
             mensaje += f"{index}. {eps['nombre']}\n"
-        enviar_mensaje_texto(mensaje)
+        enviar_mensaje_texto(telefono,mensaje)
     else:
         ingresar_dato_criterio(db,telefono,"EPS",eps_seleccionada)
         mensaje = f"Los datos ingresados fueron. Cedula: *{tomar_registro(db,telefono,"Cedula")}* con EPS: *{eps_seleccionada}* . Por favor selecciona si la información es correcta."
-        enviar_mensaje_botones("Verificacion","confirmacion",cuerpo=mensaje)
+        enviar_mensaje_botones(telefono,"Verificacion","confirmacion",cuerpo=mensaje)
         estado = "confirmacion informacion"
     actualizar_estado(db,telefono,estado)
 
@@ -71,7 +71,7 @@ def datos_incorrectos(db,telefono):
     estado = "bienvenido"
     captura_error = actualizar_estado(db,telefono,estado)
     # Enviar mensaje
-    enviar_mensaje_botones("En qué te puedo ayudar?", "bienvenida") 
+    enviar_mensaje_botones(telefono,"En qué te puedo ayudar?", "bienvenida") 
 
     
 def verificar_paciente(db,telefono):
@@ -81,7 +81,7 @@ def verificar_paciente(db,telefono):
     if not usuario:
         # Entra si la lista esta vacia
         mensaje = f"Disculpa no encontramos el numero de cedula: *{cedula}* en nuestro sistema, por favor acercate a las instalaciones para poder registrar tus datos"
-        enviar_mensaje_texto(mensaje)
+        enviar_mensaje_texto(telefono,mensaje)
         actualizar_estado(db,telefono,"bienvenido")
         return "lista vacia"
     else:
@@ -90,7 +90,7 @@ def verificar_paciente(db,telefono):
         # guarda el nombre en mongoDB
         ingresar_dato_criterio(db,telefono,"Nombre",nombre)
         mensaje = f"El numero de cedula: *{tomar_registro(db,telefono,"Cedula")}* corresponde al usuario con nombre: *{nombre}*. Indicanos si es verdadero"
-        enviar_mensaje_botones("Verificacion","confirmacion",cuerpo=mensaje)
+        enviar_mensaje_botones(telefono,"Verificacion","confirmacion",cuerpo=mensaje)
         estado = "verificar usuario citas"
         actualizar_estado(db,telefono,estado)
 
@@ -100,23 +100,23 @@ def seleccionar_especialidad(db,telefono):
     mensaje = "Selecciona la especialidad en la que deseas agendar la cita por favor:\n"
     for index, especialidad in enumerate(especialidad_data["especialidades"], start=1):
         mensaje += f"{index}. {especialidad['nombre']}\n"
-    enviar_mensaje_texto(mensaje)
+    enviar_mensaje_texto(telefono,mensaje)
 
 def confirmar_especialidad(db,telefono,mensaje):
     especialidad = verificar_especialidad(mensaje)
     if especialidad == "error":
         # Actualice el estado y vuelva a enviar el mensaje
-        enviar_mensaje_texto("Error al seleccionar especidalidad vuelve a intentarlo.")
+        enviar_mensaje_texto(telefono,"Error al seleccionar especidalidad vuelve a intentarlo.")
         estado = "verificar usuario citas"
         # Crear la lista numerada de especialidades
         mensaje = "Selecciona la especialidad en la que deseas agendar la cita por favor:\n"
         for index, especialidad in enumerate(especialidad_data["especialidades"], start=1):
             mensaje += f"{index}. {especialidad['nombre']}\n"
-        enviar_mensaje_texto(mensaje)
+        enviar_mensaje_texto(telefono,mensaje)
     else:
         ingresar_dato_criterio(db,telefono,"Especialidad",especialidad)
         mensaje = f"La especialidad seleccionada fue *{especialidad}*.Por favor has clic en el siguiente enlace para verificar agenda"
-        enviar_mensaje_texto(mensaje)
+        enviar_mensaje_texto(telefono,mensaje)
         estado="pagina web"
         # Se envia link para abrir pagina web con datos ingresados
 
